@@ -52,13 +52,16 @@ class UserController extends Controller
             ]);
 
         }catch(Exception $e){
+            $errorMessage = $e->getMessage();
+            $errorLine = $e->getLine();
+            $errorFile = $e->getFile();
+
             return response()->json([
                 'success' => false,
                 'msg' => "error retrived users",
-                'error' => $e->getMessage(),
+                'error' => "$errorMessage on line $errorLine in file $errorFile",
             ],500);
         }
-        
     }
 
     /**
@@ -78,9 +81,9 @@ class UserController extends Controller
             DB::tranction();
             
             $user = User::create($request->only([
-                'first_name',
-                'last_name',
-                'email',
+                ucwords('first_name'),
+                ucwords('last_name'),
+                strtolower('email'),
                 'mobile_number',
                 'birth_date',
             ]));
@@ -107,13 +110,18 @@ class UserController extends Controller
                     'addresses' => $user->addresses,
                 ],
             ],201);
+
         }catch(Exception $e){
             DB::rollBack();
+            
+            $errorMessage = $e->getMessage();
+            $errorLine = $e->getLine();
+            $errorFile = $e->getFile();
 
             return response()->json([
                 'success' => false,
                 'msg' => "Error creating user",
-                'data' => $e->getMessage(),
+                'data' => "$errorMessage on line $errorLine in file $errorFile",
             ],500);
 
         }
@@ -143,10 +151,14 @@ class UserController extends Controller
             ]);
 
         }catch(Exception $e){
+            $errorMessage = $e->getMessage();
+            $errorLine = $e->getLine();
+            $errorFile = $e->getFile();
+
             return response()->json([
                 'success' => false,
                 'msg' => "User not found",
-                'data' => $e->getMessage(),
+                'data' => "$errorMessage on line $errorLine in file $errorFile",
             ]);
         }
     }

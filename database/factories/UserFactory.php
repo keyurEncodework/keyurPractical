@@ -15,7 +15,7 @@ class UserFactory extends Factory
 {
     protected $model = User::class;
 
-    public function definition(): array
+    public function definition()
     {
         return [
             'first_name' => $this->faker->firstName(),
@@ -41,7 +41,6 @@ class UserFactory extends Factory
                 'city' => $city,
                 'state' => $state,
                 'type' => $this->faker->randomElement(['Home', 'Office']),
-
             ]);
         });
     }

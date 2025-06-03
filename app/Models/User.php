@@ -36,7 +36,18 @@ class User extends Authenticatable
     }
 
     public function getAgeAttribute(){
-        return Carbon::parse($this->birth_date)->age();
+        return Carbon::parse($this->birth_date)->age;
+    }
+
+    public function scopeSearch($query, $searchQuery)
+    {
+        return $query->where(function ($q) use ($searchQuery) {
+            $q->where('first_name', 'like binary', "%{$searchQuery}%")
+              ->orWhere('last_name', 'like binary', "%{$searchQuery}%")
+              ->orWhere('email', 'like binary', "%{$searchQuery}%");
+        });
+
+        // case sensitive search for (like binary) other wise (like)
     }
 
     public function scopeAgeRange($query, $minAge = null, $maxAge = null){
