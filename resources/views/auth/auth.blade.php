@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>Login/Signup Form</title>
+    <title>SignIn/SignUp Form</title>
     
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="{{asset('assets/vendors/jquery-toast-plugin/jquery.toast.min.css')}}">
     {{-- <script src="https://accounts.google.com/gsi/client" async defer></script> --}}
 
     <style>
@@ -269,21 +270,21 @@
 <body>
     <div class="container">
         <div class="form-box login">
-            <form action="#">
+            <form id="signInForm" action="{{route('sign.in')}}" method="POST">
                 @csrf
                 <h1>Login</h1>
                 <div class="input-box">
-                    <input type="text" placeholder="Username" required>
+                    <input type="text" id="userName" name="username" placeholder="Username" required>
                     <i class='bx bxs-user'></i>
                 </div>
                 <div class="input-box">
-                    <input type="password" placeholder="Password" required>
+                    <input type="password" id="password" name="password" placeholder="Password" required>
                     <i class='bx bxs-lock-alt' ></i>
                 </div>
                 <div class="forgot-link">
                     <a href="#">Forgot Password?</a>
                 </div>
-                <button type="submit" class="btn">Login</button>
+                <button type="button" class="btn" onclick="return signInProcess();">Login</button>
                 <p>or login with social platforms</p>
                 <div class="social-icons">
                     <a href="javascript:void(0);" class="googleLoginBtn"><i class='bx bxl-google' ></i></a>
@@ -358,11 +359,14 @@
         </div>
     </div>
 
+    <script src="{{asset('assets/vendors/jquery-toast-plugin/jquery.toast.min.js')}}"></script>
+    <script src="{{asset('assets/js/toastDemo.js')}}"></script>
+    
     <script type="text/javascript">
         const container = document.querySelector('.container');
         const registerBtn = document.querySelector('.register-btn');
         const loginBtn = document.querySelector('.login-btn');
-
+        
         registerBtn.addEventListener('click', () => {
             container.classList.add('active');
         })
@@ -371,6 +375,20 @@
             container.classList.remove('active');
         })
 
+        const currentUrl = new URL(window.location.href);
+
+        if(currentUrl.pathname == '/register'){
+            container.classList.add('active');
+        }else{
+            container.classList.remove('active');
+        }
+
+        function home(){
+            window.location = "{{route('home')}}";
+        }
+    </script>
+
+    <script type="text/javascript">
         let tokenClient;
 
         function initializeGoogleOAuth() {
@@ -432,14 +450,10 @@
                 });
                 console.log("i m here");
             }, 400);
-        }
-
-        function home(){
-            window.location = "{{route('home')}}";
-        }
+        }    
     </script>
 
-    <script>
+    <script type="text/javascript">
         function SignUpProcess(){
             // var username = $("#username").val();
             // var email = $("#email").val();
@@ -454,11 +468,64 @@
                 data: formData,
                 success: function(response){
                     if(response['status'] == 1){
-                        $('.success_msg').html(response['msg']);
+                        // $('.success_msg').html(response['msg']);
+                        showSuccessToast(response['msg']);
+                        setTimeout(function() {
+                            container.classList.remove('active');
+                            
+                        }, 500);
+
                     }else{
-                        $('.error_msg').html(response['msg']);
+                        // $('.error_msg').html(response['msg']);
+                        // showDangerToast(response['msg']);
+
+                        // let errorMessages = '';
+                        if (response['data']) {
+                            for (let field in response['data']) {
+                                if (response['data'][field].length > 0) {
+                                    // errorMessages += ` ${response['data'][field].join(', ')}<br>`;
+                                    showDangerToast(response['data'][field]);
+                                }
+                            }
+                        }else{
+                            showDangerToast(response['msg']);
+                        }
+                        // Fallback to generic message if no specific errors
+                        // errorMessages = errorMessages || response['msg'];
+                        // $('.error_msg').html(errorMessages);
                     }
                 }
+            });
+        }
+
+
+        function signInProcess(){
+            var formData = $("#signInForm").serialize();
+            
+            $.ajax({
+                url: $("#signInForm").attr('action'),
+                method: $("#signInForm").attr('method'),
+                data: formData,
+                success: function(response){
+                    if(response['status'] == 1){
+                        showSuccessToast(response['msg']);
+
+                        setTimeout(() => {
+                            window.location = "{{route('dashboard')}}";
+                        }, 500);
+                    }else{
+                        if (response['data']) {
+                            for (let field in response['data']) {
+                                if (response['data'][field].length > 0) {
+                                    // errorMessages += ` ${response['data'][field].join(', ')}<br>`;
+                                    showDangerToast(response['data'][field]);
+                                }
+                            }
+                        }else{
+                            showDangerToast(response['msg']);
+                        }
+                    }
+                },
             });
         }
     </script>

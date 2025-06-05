@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Admin;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
@@ -64,10 +65,10 @@ class AuthController extends Controller
                     $tokenResult = $user->createToken('Personal Access Token');
                     $token = $tokenResult->plainTextToken;
                     
-                    $user->session_id = $token;
+                    $user->session_id = Session::getId();
                     $user->save();
 
-                    Session::setId('token',$token);
+                    // Session::setId('token',$token);
                 }else{
                     $user = Admin::where('email', $email)->first();
 
@@ -89,10 +90,10 @@ class AuthController extends Controller
                     $tokenResult = $user->createToken('Personal Access Token');
                     $token = $tokenResult->plainTextToken;
                     
-                    $user->session_id = $token;
+                    $user->session_id = Session::getId();
                     $user->save();
 
-                    Session::setId('token',$token);
+                    // Session::setId('token',$token);
                 }
 
                 return response()->json([
@@ -177,9 +178,183 @@ class AuthController extends Controller
         }
     }
 
+    public function signIn(Request $request){
+        $validator = Validator::make($request->all(),[
+            'username' => [
+                'required',
+                'string',
+                function ($attribute, $value, $fail) {
+                    if ($value !== strtolower($value)) {
+                        $fail('The ' . $attribute . ' must be all lowercase.');
+                    }
+                },
+            ],
+            'password' => [
+                'required',
+                'min:6',
+                'max:6',
+            ],
+        ]);
+
+        if($validator->fails()){
+            return response()->json([
+                'status' => 0,
+                'statuscode' => 400,
+                'msg' => 'Validation faild',
+                'data' => $validator->errors(),
+            ]);
+        }else{
+
+            $admin = Admin::where('username',$request->username)->first();
+
+            if($admin && Hash::check($request->password, $admin->password)){
+                $admin->session_id = Session::getId();
+                $admin->save();
+
+                return response()->json([
+                    'status' => 1,
+                    'statuscode' => 200,
+                    'msg' => "Login successfully",
+                ]);
+            }else{
+                return response()->json([
+                    'status' => 0,
+                    'statuscode' => 400,
+                    'msg' => 'Username or Password are incorrect',
+                ]);
+            }
+
+        }
+    }
+
     public function dashboard(Request $request){
         $title = "Dashbaord";
 
-        return view('web/dashboard',compact('title'));
+        $sessionId = Session::getId();
+        $admin = Admin::where('session_id',$sessionId)->first();
+        $avatar = $admin ? $admin->avatar : 'default.png';
+
+        $time = date('H');
+
+        if($time < 12){
+            $messge = "Good Moring";
+        }else if($time >= 12 || $time <= 5){
+            $message = "Good Afternoon";
+        }else if($time >= 5 || $time <= 8){
+            $message = "Good Evening";
+        }else{
+            $message = "Good To See you";
+        }
+
+        return view('web/dashboard/dashboard',compact('title', 'avatar', 'message'));
+    }
+
+    public function users(Request $request){
+        $title = "Users";
+
+        return view('web/user/index', compact('title'));
+    }
+
+    public function usersAjax(Request $request){
+        $selectColumns = [
+            'users.id',
+            'users.first_name',
+            'users.last_name',
+            'users.email',
+            'users.mobile_number',
+            'users.birth_date',
+            'addresses.id as address_id',
+            'addresses.user_id',
+            'addresses.address',
+            'addresses.city',
+            'addresses.state',
+            'addresses.type',
+        ];
+
+        $sortingColumns = [
+            0 => 'users.id',
+            1 => 'users.first_name',
+            1 => 'users.last_name',
+            2 => 'users.email',
+            3 => 'users.mobile_number',
+            4 => 'users.birth_date',
+        ];
+
+        $searchingColumns = [
+            'users.id',
+            'users.first_name',
+            'users.last_name',
+            'users.email',
+            'users.mobile_number',
+            'users.birth_date',
+        ];
+
+        $query = User::query();
+        $query->select($selectColumns);
+        $query->leftJoin('addresses','addresses.user_id','users.id');
+
+        $recordsTotal = $query->count();
+
+
+        if(isset($request['search']['value'])){
+            $searchValue = $request['search']['value'];
+
+            $query->where(function ($query) use ($searchValue, $searchingColumns){
+                for($i = 0; $i < count($searchingColumns); $i++){
+                    $query->orWhere($searchingColumns[$i],'like', '%' . $searchValue . '%');
+                }
+            });
+        }
+
+        $recordsFiltered = $query->count();
+
+        $query->orderBy($sortingColumns[$request['order'][0]['column']], $request['order'][0]['dir']);
+        $query->limit($recordsTotal);
+        $query->offset($request['start']);
+
+        $data = $query->get();
+        $data = json_decode(json_encode($data, true));
+
+        print_r($data);
+        die;
+
+
+
+            if($request->filled('searchQuery')){
+                $query->search($request->searchQuery);
+            }
+
+            if($request->filled('minAge') || $request->filled('maxAge')){
+                $query->ageRange($request->minAge, $request->maxAge);
+            }
+
+            if($request->filled('city')){
+                $query->byCity($request->city);
+            }
+
+            $users = $query->paginate();
+
+            
+            $users->getCollection()->transform(function ($user){
+                return [
+                    'id' => $user->id,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'email' => $user->email,
+                    'mobile_number' => $user->mobile_number,
+                    'birth_date' => $user->birth_date->format('Y-m-d'),
+                    'age' => $user->age,
+                    'addresses' => $user->addresses,
+                ];
+            });
+
+             print_r($users);
+        die;
+            return response()->json([
+                'success' => true,
+                'msg' => "users retrived successfully",
+                'data' => $users,
+            ]);
+       
     }
 }
