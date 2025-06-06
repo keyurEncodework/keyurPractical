@@ -237,7 +237,7 @@ class AuthController extends Controller
         $time = date('H');
 
         if($time < 12){
-            $messge = "Good Moring";
+            $message = "Good Morning";
         }else if($time >= 12 || $time <= 5){
             $message = "Good Afternoon";
         }else if($time >= 5 || $time <= 8){
@@ -295,7 +295,6 @@ class AuthController extends Controller
 
         $recordsTotal = $query->count();
 
-
         if(isset($request['search']['value'])){
             $searchValue = $request['search']['value'];
 
@@ -314,12 +313,27 @@ class AuthController extends Controller
 
         $data = $query->get();
         $data = json_decode(json_encode($data, true));
+        
+        $viewData = array();
+        
+        foreach($data as $key => $value){
 
-        print_r($data);
+            print_r($value->birth_date);
+            echo "\n";
+            // $viewData[$key] = array();
+            // $viewData[$key]['id'] = $value->id;
+            // $viewData[$key]['full_name'] = $value->first_name . $value->last_name;
+            // $viewData[$key]['email'] = $value->email;
+            // $viewData[$key]['mobile_no'] = $value->mobile_number;
+            // $viewData[$key]['date_of_birth'] = date('d-m-Y',$value->birth_date);
+            // $viewData[$key]['address'] = "<button class='btn btn-success'>View</button>";
+            // $viewData[$key]['action'] = "<button class='btn btn-primary'>Edit</button><button class='btn btn-danger'>Delete</button>";
+        }
+
+        // print_r($viewData);
         die;
 
-
-
+           
             if($request->filled('searchQuery')){
                 $query->search($request->searchQuery);
             }

@@ -25,6 +25,7 @@ class Authetication
             return $next($request);
         }
 
+        return redirect()->route('home');
         return response()->json([
             'status' => 0,
             'statuscode' => 401,
